@@ -1,0 +1,10 @@
+{
+  "name": "Borneo Trans - Travel & Wisata Kalimantan",
+  "short_name": "Borneo Trans",
+  "description": "Aplikasi pemesanan travel dan eksplorasi wisata Kalimantan",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#E8F3EC",
+  "theme_color": "#1B4332",
+  "orientation": "portrait"
+}
