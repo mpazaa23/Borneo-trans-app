@@ -36,7 +36,7 @@ const SAMPLE_TICKET: BookingTicket = {
 
 export default function MyTicketsPage() {
   const router = useRouter();
-  const [tickets, setTickets] = useState<BookingTicket[]>([SAMPLE_TICKET]);
+  const [tickets, setTickets] = useState<BookingTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncedFromCloud, setSyncedFromCloud] = useState(false);
   const [timezoneLabel, setTimezoneLabel] = useState<'WIB' | 'WITA'>('WITA');
@@ -55,9 +55,27 @@ export default function MyTicketsPage() {
     }
 
     const loadTickets = async () => {
+      let activeUserId: string | null = null;
+
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          activeUserId = user?.id ?? null;
+        } catch {
+          activeUserId = null;
+        }
+      }
+
+      // Gunakan kunci penyimpanan lokal yang terisolasi per akun
+      const ticketStorageKey = activeUserId
+        ? `borneo_tickets_${activeUserId}`
+        : 'borneo_tickets_demo';
+
       let localTickets: BookingTicket[] = [];
       try {
-        const savedRaw = localStorage.getItem('borneo_tickets');
+        const savedRaw = localStorage.getItem(ticketStorageKey);
         if (savedRaw) {
           const parsed = JSON.parse(savedRaw);
           if (Array.isArray(parsed)) {
@@ -70,40 +88,21 @@ export default function MyTicketsPage() {
 
       let cloudTickets: BookingTicket[] = [];
 
-      if (isSupabaseConfigured && supabase) {
+      // Hanya tarik dari Supabase jika akun terautentikasi dan filter eksplisit berdasarkan user_id
+      if (isSupabaseConfigured && supabase && activeUserId) {
         try {
-          let currentUserEmail = '';
-          try {
-            const rawUser = localStorage.getItem('borneo_demo_user');
-            if (rawUser) {
-              const parsedUser = JSON.parse(rawUser);
-              currentUserEmail = parsedUser?.email?.trim().toLowerCase() || '';
-            }
-          } catch {
-            currentUserEmail = '';
-          }
-
-          let query = supabase
+          const { data: bookingsData, error } = await supabase
             .from('bookings')
             .select('*')
+            .eq('user_id', activeUserId)
             .order('created_at', { ascending: false })
             .limit(30);
-
-          if (
-            currentUserEmail &&
-            currentUserEmail !== 'traveler@borneotrans.id'
-          ) {
-            query = query.ilike('booker_email', currentUserEmail);
-          }
-
-          const { data: bookingsData, error } = await query;
 
           if (error) {
             console.error('Supabase bookings error:', error.message);
           } else if (Array.isArray(bookingsData)) {
             setSyncedFromCloud(true);
 
-            // Ambil data penumpang secara terpisah berdasarkan booking_id
             const bookingIds = bookingsData.map((b) => b.id).filter(Boolean);
             const passengersMap: Record<
               string,
@@ -162,7 +161,6 @@ export default function MyTicketsPage() {
         }
       }
 
-      // Gabungkan tiket dari Supabase & lokal tanpa duplikasi ticket_code
       const mergedMap = new Map<string, BookingTicket>();
       [...cloudTickets, ...localTickets].forEach((t) => {
         if (t?.ticket_code && !mergedMap.has(t.ticket_code)) {
@@ -173,8 +171,11 @@ export default function MyTicketsPage() {
       const mergedList = Array.from(mergedMap.values());
       if (mergedList.length > 0) {
         setTickets(mergedList);
-      } else {
+      } else if (!activeUserId) {
+        // Tampilkan contoh tiket hanya jika berada di Mode Demo tanpa login
         setTickets([SAMPLE_TICKET]);
+      } else {
+        setTickets([]);
       }
       setLoading(false);
     };
@@ -190,7 +191,6 @@ export default function MyTicketsPage() {
   return (
     <AppShell showBottomNav={false} darkHeaderIcon={true}>
       <div className="relative flex-1 bg-gradient-to-b from-[#E5E7EB] via-[#D1D5DB] to-[#F3F4F6] pt-16 pb-12 px-5 min-h-screen">
-        {/* Latar Awan Abu-Abu Lembut */}
         <img
           src="/images/bg utama.png"
           alt="Clouds"
@@ -235,6 +235,16 @@ export default function MyTicketsPage() {
                 </div>
               ))}
             </div>
+          ) : tickets.length === 0 ? (
+            <div className="bg-white rounded-3xl p-6 text-center shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+              <p className="text-sm font-extrabold text-gray-800">
+                Belum Ada E-Ticket
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Tiket perjalanan yang kamu pesan dengan akun ini akan muncul di
+                sini.
+              </p>
+            </div>
           ) : (
             <div className="space-y-4">
               {tickets.map((ticket) => (
@@ -242,7 +252,6 @@ export default function MyTicketsPage() {
                   key={ticket.id}
                   className="bg-white rounded-3xl p-4 shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
                 >
-                  {/* Mini Kartu E-Ticket */}
                   <div className="bg-[#FAF8F5] rounded-2xl p-4 border border-stone-200 relative overflow-hidden">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[10px] font-bold text-gray-400">
@@ -297,7 +306,6 @@ export default function MyTicketsPage() {
                     </div>
                   </div>
 
-                  {/* Tombol Lihat Detail */}
                   <div className="flex justify-end mt-3">
                     <button
                       type="button"

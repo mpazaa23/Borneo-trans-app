@@ -78,7 +78,6 @@ export default function OnboardingAndLoginPage() {
     setIsNudging(false);
 
     if (trackRef.current) {
-      // Lebar jalur (276px) - padding kiri/kanan (12px) - lebar tombol (44px) = 220px
       setMaxDrag(Math.max(140, trackRef.current.offsetWidth - 56));
     }
   };
@@ -95,7 +94,6 @@ export default function OnboardingAndLoginPage() {
     setIsDragging(false);
     startXRef.current = null;
 
-    // Jika digeser minimal 65% jalur, langsung buka form login dengan mulus
     if (dragX >= maxDrag * 0.65) {
       setDragX(maxDrag);
       setIsUnlocked(true);
@@ -103,12 +101,10 @@ export default function OnboardingAndLoginPage() {
         setStep("login");
       }, 300);
     } else if (dragX < 8) {
-      // Jika hanya diklik tanpa digeser, beri animasi pantulan petunjuk (nudge)
       setDragX(0);
       setIsNudging(true);
       setTimeout(() => setIsNudging(false), 550);
     } else {
-      // Kembali memantul ke kiri secara elastis
       setDragX(0);
     }
   };
@@ -157,17 +153,10 @@ export default function OnboardingAndLoginPage() {
 
     try {
       if (authMode === "register") {
-        const existingUsers = getStoredUsers();
-        if (existingUsers.some((u) => u.email === trimmedEmail)) {
-          setErrorMsg(
-            "Email sudah terdaftar. Silakan masuk menggunakan akun ini.",
-          );
-          setLoading(false);
-          return;
-        }
+        let registeredUserId: string | undefined;
 
         if (isSupabaseConfigured && supabase) {
-          const { error } = await supabase.auth.signUp({
+          const { data, error } = await supabase.auth.signUp({
             email: trimmedEmail,
             password,
             options: {
@@ -177,11 +166,30 @@ export default function OnboardingAndLoginPage() {
               },
             },
           });
-          if (error && !error.message.toLowerCase().includes("already")) {
-            throw error;
+
+          if (error) {
+            const msg = error.message.toLowerCase();
+            if (msg.includes("already")) {
+              setErrorMsg(
+                "Email sudah terdaftar. Silakan pindah ke tab Masuk."
+              );
+            } else if (msg.includes("rate limit")) {
+              setErrorMsg(
+                "Batas pendaftaran sementara tercapai. Coba beberapa saat lagi."
+              );
+            } else {
+              setErrorMsg(`Gagal mendaftar: ${error.message}`);
+            }
+            setLoading(false);
+            return;
           }
+
+          registeredUserId = data.user?.id;
         }
 
+        const existingUsers = getStoredUsers().filter(
+          (u) => u.email !== trimmedEmail
+        );
         const newUser: LocalRegisteredUser = {
           name: trimmedName,
           email: trimmedEmail,
@@ -190,15 +198,16 @@ export default function OnboardingAndLoginPage() {
         };
         localStorage.setItem(
           "borneo_registered_users",
-          JSON.stringify([...existingUsers, newUser]),
+          JSON.stringify([...existingUsers, newUser])
         );
         localStorage.setItem(
           "borneo_demo_user",
           JSON.stringify({
+            id: registeredUserId,
             name: newUser.name,
             email: newUser.email,
             phone: newUser.phone,
-          }),
+          })
         );
 
         setSuccessMsg("Akun berhasil dibuat! Mengarahkan ke beranda...");
@@ -208,29 +217,7 @@ export default function OnboardingAndLoginPage() {
           setSuccessMsg(null);
         }, 700);
       } else {
-        const existingUsers = getStoredUsers();
-        const localMatch = existingUsers.find((u) => u.email === trimmedEmail);
-
-        if (localMatch) {
-          if (localMatch.password !== password) {
-            setErrorMsg("Kata sandi salah. Periksa kembali kata sandimu.");
-            setLoading(false);
-            return;
-          }
-
-          localStorage.setItem(
-            "borneo_demo_user",
-            JSON.stringify({
-              name: localMatch.name,
-              email: localMatch.email,
-              phone: localMatch.phone,
-            }),
-          );
-          router.push("/home");
-          setLoading(false);
-          return;
-        }
-
+        // Selalu autentikasi lewat Supabase Auth terlebih dahulu agar sesi auth.uid() aktif untuk RLS
         if (isSupabaseConfigured && supabase) {
           const { data, error } = await supabase.auth.signInWithPassword({
             email: trimmedEmail,
@@ -245,42 +232,67 @@ export default function OnboardingAndLoginPage() {
 
           const userName =
             data.user?.user_metadata?.full_name || trimmedEmail.split("@")[0];
+          const userPhone = data.user?.user_metadata?.phone || "";
 
           localStorage.setItem(
             "borneo_demo_user",
             JSON.stringify({
+              id: data.user?.id,
               name: userName,
               email: trimmedEmail,
-            }),
+              phone: userPhone,
+            })
           );
           router.push("/home");
           setLoading(false);
-        } else {
-          setErrorMsg(
-            'Akun belum terdaftar. Silakan pilih tab "Daftar Akun" terlebih dahulu.',
-          );
-          setLoading(false);
+          return;
         }
+
+        // Fallback lokal hanya jika Supabase tidak dikonfigurasi
+        const existingUsers = getStoredUsers();
+        const localMatch = existingUsers.find((u) => u.email === trimmedEmail);
+        if (!localMatch || localMatch.password !== password) {
+          setErrorMsg("Email belum terdaftar atau kata sandi tidak sesuai.");
+          setLoading(false);
+          return;
+        }
+
+        localStorage.setItem(
+          "borneo_demo_user",
+          JSON.stringify({
+            name: localMatch.name,
+            email: localMatch.email,
+            phone: localMatch.phone,
+          })
+        );
+        router.push("/home");
+        setLoading(false);
       }
-    } catch {
-      setErrorMsg("Terjadi kendala saat memproses akun. Coba lagi.");
+    } catch (err) {
+      const detail =
+        err instanceof Error ? err.message : "Terjadi kendala jaringan.";
+      setErrorMsg(`Terjadi kendala saat memproses akun: ${detail}`);
       setLoading(false);
     }
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     if (loading || googleLoading) return;
     setGoogleLoading(true);
     setErrorMsg(null);
     setSuccessMsg("Masuk dengan akun demo Google...");
 
     try {
+      // Pastikan sesi akun sebelumnya dibersihkan agar data tidak bercampur
+      if (isSupabaseConfigured && supabase) {
+        await supabase.auth.signOut();
+      }
       localStorage.setItem(
         "borneo_demo_user",
         JSON.stringify({
           name: "Penjelajah Borneo",
           email: "traveler@borneotrans.id",
-        }),
+        })
       );
     } catch {
       // Abaikan jika penyimpanan lokal dibatasi browser
@@ -293,6 +305,24 @@ export default function OnboardingAndLoginPage() {
         setSuccessMsg(null);
       }, 300);
     }, 450);
+  };
+
+  const handleEnterGuestDemo = async () => {
+    try {
+      if (isSupabaseConfigured && supabase) {
+        await supabase.auth.signOut();
+      }
+      localStorage.setItem(
+        "borneo_demo_user",
+        JSON.stringify({
+          name: "Tamu Demo Borneo",
+          email: "traveler@borneotrans.id",
+        })
+      );
+    } catch {
+      // Abaikan error storage
+    }
+    router.push("/home");
   };
 
   return (
@@ -382,12 +412,10 @@ export default function OnboardingAndLoginPage() {
 
         {step === "onboarding" ? (
           <div className="flex flex-col items-center">
-            {/* Jalur Interaktif Slide-to-Unlock Modern */}
             <div
               ref={trackRef}
               className="relative w-[276px] h-14 rounded-full bg-[#1B4332] p-1.5 flex items-center shadow-[0_10px_25px_rgba(27,67,50,0.28)] overflow-hidden select-none"
             >
-              {/* Jejak Gradasi Emerald Mengikuti Geseran */}
               <div
                 style={{
                   width: `${dragX + 50}px`,
@@ -398,7 +426,6 @@ export default function OnboardingAndLoginPage() {
                 }`}
               />
 
-              {/* Teks Shimmer di Tengah Jalur (Absolute agar tidak menggeser tombol) */}
               <div
                 style={{ opacity: Math.max(0, 1 - swipeProgress * 1.6) }}
                 className="absolute inset-0 flex items-center justify-center pl-11 pr-4 pointer-events-none"
@@ -408,7 +435,6 @@ export default function OnboardingAndLoginPage() {
                 </span>
               </div>
 
-              {/* Tombol Bulat Putih dengan Ikon Panah Minimalis */}
               <div
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
@@ -454,7 +480,6 @@ export default function OnboardingAndLoginPage() {
           </div>
         ) : (
           <div className="w-full max-w-[340px] mx-auto space-y-3.5 animate-[fadeIn_0.3s_ease-out]">
-            {/* Tab Pengalih Masuk / Daftar Akun */}
             <div className="grid grid-cols-2 bg-gray-200/80 p-1 rounded-2xl">
               <button
                 type="button"
@@ -480,7 +505,6 @@ export default function OnboardingAndLoginPage() {
               </button>
             </div>
 
-            {/* Pesan Error / Sukses */}
             {errorMsg && (
               <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-xl text-[11px] font-medium">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -495,7 +519,6 @@ export default function OnboardingAndLoginPage() {
               </div>
             )}
 
-            {/* Form Input Manual */}
             <form
               onSubmit={handleManualSubmit}
               className="space-y-2.5 text-left"
@@ -577,7 +600,6 @@ export default function OnboardingAndLoginPage() {
               </button>
             </form>
 
-            {/* Pembatas */}
             <div className="flex items-center gap-3 py-0.5">
               <div className="h-px flex-1 bg-gray-200" />
               <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
@@ -586,7 +608,6 @@ export default function OnboardingAndLoginPage() {
               <div className="h-px flex-1 bg-gray-200" />
             </div>
 
-            {/* Tombol Login with Google (Instant Demo Mode) */}
             <button
               type="button"
               onClick={handleGoogleLogin}
@@ -604,7 +625,7 @@ export default function OnboardingAndLoginPage() {
             <div className="text-center pt-0.5">
               <button
                 type="button"
-                onClick={() => router.push("/home")}
+                onClick={handleEnterGuestDemo}
                 className="text-xs font-medium text-[#1B4332] hover:underline"
               >
                 Masuk Mode Demo Tanpa Login &rarr;
