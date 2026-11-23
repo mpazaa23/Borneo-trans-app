@@ -1,10 +1,24 @@
 {
   "name": "Borneo Trans - Travel & Wisata Kalimantan",
   "short_name": "Borneo Trans",
-  "description": "Aplikasi pemesanan travel dan eksplorasi wisata Kalimantan",
+  "description": "Ke Mana Pun Tujuanmu, Borneo Teman Perjalananmu",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#E8F3EC",
+  "background_color": "#1B4332",
   "theme_color": "#1B4332",
-  "orientation": "portrait"
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/images/icon app.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icon app.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }

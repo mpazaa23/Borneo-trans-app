@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { useState,useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   Search,
   Mic,
@@ -18,31 +18,31 @@ import {
   Clock,
   Compass,
   CheckCircle2,
-} from 'lucide-react';
-import AppShell from '@/components/AppShell';
-import BorneoVoiceModal from '@/components/BorneoVoiceModal';
-import { CITIES, REGIONAL_CITIES } from '@/data/mockData';
+} from "lucide-react";
+import AppShell from "@/components/AppShell";
+import BorneoVoiceModal from "@/components/BorneoVoiceModal";
+import { CITIES, REGIONAL_CITIES } from "@/data/mockData";
 
 const SERVICE_HIGHLIGHTS = [
   {
     icon: CarFront,
-    title: 'Hiace Premio',
-    subtitle: 'Kabin armada lega',
+    title: "Hiace Premio",
+    subtitle: "Kabin armada lega",
   },
   {
     icon: ShieldCheck,
-    title: 'Door to Door',
-    subtitle: 'Antar jemput',
+    title: "Door to Door",
+    subtitle: "Antar jemput",
   },
   {
     icon: Plane,
-    title: 'Drop Bandara',
-    subtitle: 'Tepat waktu',
+    title: "Drop Bandara",
+    subtitle: "Tepat waktu",
   },
   {
     icon: Headphones,
-    title: 'CS 24 Jam',
-    subtitle: 'Siap Melayani',
+    title: "CS 24 Jam",
+    subtitle: "Siap Melayani",
   },
 ];
 
@@ -64,155 +64,167 @@ interface TopDestinationItem {
 
 const TOP_DESTINATIONS: TopDestinationItem[] = [
   {
-    id: 'tanjung-puting',
-    title: 'Taman Nasional Tanjung Puting',
-    location: 'Kotawaringin Barat, Kalimantan Tengah',
-    category: 'Ekowisata & Satwa',
-    image: '/images/Taman Nasional Tanjung Puting.jpg',
-    rating: '4.9',
-    reviews: '1,8rb ulasan',
-    bestTime: '08.00 – 16.00 WIB',
+    id: "tanjung-puting",
+    title: "Taman Nasional Tanjung Puting",
+    location: "Kotawaringin Barat, Kalimantan Tengah",
+    category: "Ekowisata & Satwa",
+    image: "/images/Taman Nasional Tanjung Puting.jpg",
+    rating: "4.9",
+    reviews: "1,8rb ulasan",
+    bestTime: "08.00 – 16.00 WIB",
     description:
-      'Kawasan konservasi orangutan terbesar di dunia yang terkenal dengan wisata susur Sungai Sekonyer menggunakan perahu klotok tradisional menuju Camp Leakey.',
-    highlights: ['Observasi Orangutan', 'Susur Sungai Klotok', 'Camp Leakey'],
-    defaultOrigin: 'Kota Sampit',
-    destination: 'Kota Pangkalan Bun',
-    gradient: 'from-[#0F5132] via-[#1B4332] to-[#081C15]',
+      "Kawasan konservasi orangutan terbesar di dunia yang terkenal dengan wisata susur Sungai Sekonyer menggunakan perahu klotok tradisional menuju Camp Leakey.",
+    highlights: ["Observasi Orangutan", "Susur Sungai Klotok", "Camp Leakey"],
+    defaultOrigin: "Kota Sampit",
+    destination: "Kota Pangkalan Bun",
+    gradient: "from-[#0F5132] via-[#1B4332] to-[#081C15]",
   },
   {
-    id: 'pasar-terapung',
-    title: 'Pasar Terapung Lok Baintan',
-    location: 'Kab. Banjar, Kalimantan Selatan',
-    category: 'Budaya & Kuliner',
-    image: '/images/Pasar Terapung.jpg',
-    rating: '4.8',
-    reviews: '2,1rb ulasan',
-    bestTime: '06.00 – 09.00 WITA',
+    id: "pasar-terapung",
+    title: "Pasar Terapung Lok Baintan",
+    location: "Kab. Banjar, Kalimantan Selatan",
+    category: "Budaya & Kuliner",
+    image: "/images/Pasar Terapung.jpg",
+    rating: "4.8",
+    reviews: "2,1rb ulasan",
+    bestTime: "06.00 – 09.00 WITA",
     description:
-      'Pasar tradisional di atas aliran Sungai Martapura di mana para pedagang menjajakan hasil kebun, kue khas Banjar, dan soto Banjar langsung dari atas jukung (perahu kayu).',
-    highlights: ['Kuliner Soto Banjar', 'Wisata Jukung Pagi', 'Foto Sunrise Sungai'],
-    defaultOrigin: 'Kota Palangkaraya',
-    destination: 'Kota Banjarmasin',
-    gradient: 'from-[#7C2D12] via-[#9A3412] to-[#431407]',
+      "Pasar tradisional di atas aliran Sungai Martapura di mana para pedagang menjajakan hasil kebun, kue khas Banjar, dan soto Banjar langsung dari atas jukung (perahu kayu).",
+    highlights: [
+      "Kuliner Soto Banjar",
+      "Wisata Jukung Pagi",
+      "Foto Sunrise Sungai",
+    ],
+    defaultOrigin: "Kota Palangkaraya",
+    destination: "Kota Banjarmasin",
+    gradient: "from-[#7C2D12] via-[#9A3412] to-[#431407]",
   },
   {
-    id: 'bundaran-besar',
-    title: 'Menara Bundaran Besar',
-    location: 'Kota Palangka Raya, Kalimantan Tengah',
-    category: 'Ikon & Landmark Kota',
-    image: '/images/Bundaran Besar.jpg',
-    rating: '4.7',
-    reviews: '1,4rb ulasan',
-    bestTime: '17.00 – 22.00 WIB',
+    id: "bundaran-besar",
+    title: "Menara Bundaran Besar",
+    location: "Kota Palangka Raya, Kalimantan Tengah",
+    category: "Ikon & Landmark Kota",
+    image: "/images/Bundaran Besar.jpg",
+    rating: "4.7",
+    reviews: "1,4rb ulasan",
+    bestTime: "17.00 – 22.00 WIB",
     description:
-      'Ikon arsitektur modern di jantung Kota Cantik Palangka Raya dengan taman kota luas, air mancur, dan pencahayaan artistik yang memukau saat malam hari.',
-    highlights: ['Panorama Lampu Malam', 'Spot Foto Ikonik', 'Pusat Kuliner Kota'],
-    defaultOrigin: 'Kota Sampit',
-    destination: 'Kota Palangkaraya',
-    gradient: 'from-[#1E1B4B] via-[#312E81] to-[#4C1D95]',
+      "Ikon arsitektur modern di jantung Kota Cantik Palangka Raya dengan taman kota luas, air mancur, dan pencahayaan artistik yang memukau saat malam hari.",
+    highlights: [
+      "Panorama Lampu Malam",
+      "Spot Foto Ikonik",
+      "Pusat Kuliner Kota",
+    ],
+    defaultOrigin: "Kota Sampit",
+    destination: "Kota Palangkaraya",
+    gradient: "from-[#1E1B4B] via-[#312E81] to-[#4C1D95]",
   },
   {
-    id: 'derawan',
-    title: 'Kepulauan Derawan',
-    location: 'Kab. Berau, Kalimantan Timur',
-    category: 'Wisata Bahari',
-    image: '/images/Above.jpg',
-    rating: '4.9',
-    reviews: '2,6rb ulasan',
-    bestTime: '07.00 – 17.00 WITA',
+    id: "derawan",
+    title: "Kepulauan Derawan",
+    location: "Kab. Berau, Kalimantan Timur",
+    category: "Wisata Bahari",
+    image: "/images/Above.jpg",
+    rating: "4.9",
+    reviews: "2,6rb ulasan",
+    bestTime: "07.00 – 17.00 WITA",
     description:
-      'Surga bahari Kalimantan Timur dengan pasir putih, air laut jernih berwarna toska, penginapan di atas air, serta habitat penyu hijau dan terumbu karang eksotis.',
-    highlights: ['Snorkeling Terumbu Karang', 'Konservasi Penyu', 'Villa Atas Air'],
-    defaultOrigin: 'Kota Samarinda',
-    destination: 'Kota Balikpapan',
-    gradient: 'from-[#0C4A6E] via-[#0369A1] to-[#082F49]',
+      "Surga bahari Kalimantan Timur dengan pasir putih, air laut jernih berwarna toska, penginapan di atas air, serta habitat penyu hijau dan terumbu karang eksotis.",
+    highlights: [
+      "Snorkeling Terumbu Karang",
+      "Konservasi Penyu",
+      "Villa Atas Air",
+    ],
+    defaultOrigin: "Kota Samarinda",
+    destination: "Kota Balikpapan",
+    gradient: "from-[#0C4A6E] via-[#0369A1] to-[#082F49]",
   },
 ];
 
 const POPULAR_ROUTES = [
   {
-    origin: 'Kota Sampit',
-    destination: 'Kota Palangkaraya',
-    labelFrom: 'Sampit',
-    labelTo: 'Palangkaraya',
-    price: 'Rp 175rb',
-    duration: '3j 10m',
+    origin: "Kota Sampit",
+    destination: "Kota Palangkaraya",
+    labelFrom: "Sampit",
+    labelTo: "Palangkaraya",
+    price: "Rp 175rb",
+    duration: "3j 10m",
   },
   {
-    origin: 'Kota Palangkaraya',
-    destination: 'Kota Banjarmasin',
-    labelFrom: 'Palangkaraya',
-    labelTo: 'Banjarmasin',
-    price: 'Rp 220rb',
-    duration: '4j 30m',
+    origin: "Kota Palangkaraya",
+    destination: "Kota Banjarmasin",
+    labelFrom: "Palangkaraya",
+    labelTo: "Banjarmasin",
+    price: "Rp 220rb",
+    duration: "4j 30m",
   },
   {
-    origin: 'Kota Samarinda',
-    destination: 'Kota Balikpapan',
-    labelFrom: 'Samarinda',
-    labelTo: 'Balikpapan',
-    price: 'Rp 150rb',
-    duration: '2j 15m',
+    origin: "Kota Samarinda",
+    destination: "Kota Balikpapan",
+    labelFrom: "Samarinda",
+    labelTo: "Balikpapan",
+    price: "Rp 150rb",
+    duration: "2j 15m",
   },
   {
-    origin: 'Kota Pontianak',
-    destination: 'Kota Singkawang',
-    labelFrom: 'Pontianak',
-    labelTo: 'Singkawang',
-    price: 'Rp 140rb',
-    duration: '3j 00m',
+    origin: "Kota Pontianak",
+    destination: "Kota Singkawang",
+    labelFrom: "Pontianak",
+    labelTo: "Singkawang",
+    price: "Rp 140rb",
+    duration: "3j 00m",
   },
 ];
 
 // Tarif & durasi diselaraskan dengan data pencarian rute Borneo Trans
 const ROUTE_ESTIMATES: Record<string, { price: string; duration: string }> = {
-  'Kota Sampit|Kota Pangkalan Bun': {
-    price: 'Rp 210.000',
-    duration: '± 4j 30m via darat',
+  "Kota Sampit|Kota Pangkalan Bun": {
+    price: "Rp 210.000",
+    duration: "± 4j 30m via darat",
   },
-  'Kota Samarinda|Kota Pangkalan Bun': {
-    price: 'Rp 325.000',
-    duration: '± 8j 30m lintas provinsi',
+  "Kota Samarinda|Kota Pangkalan Bun": {
+    price: "Rp 325.000",
+    duration: "± 8j 30m lintas provinsi",
   },
-  'Kota Balikpapan|Kota Pangkalan Bun': {
-    price: 'Rp 325.000',
-    duration: '± 8j 00m lintas provinsi',
+  "Kota Balikpapan|Kota Pangkalan Bun": {
+    price: "Rp 325.000",
+    duration: "± 8j 00m lintas provinsi",
   },
-  'Kota Palangkaraya|Kota Sampit': {
-    price: 'Rp 175.000',
-    duration: '± 3j 10m via darat',
+  "Kota Palangkaraya|Kota Sampit": {
+    price: "Rp 175.000",
+    duration: "± 3j 10m via darat",
   },
-  'Kota Palangkaraya|Kota Pangkalan Bun': {
-    price: 'Rp 280.000',
-    duration: '± 7j 30m via darat',
+  "Kota Palangkaraya|Kota Pangkalan Bun": {
+    price: "Rp 280.000",
+    duration: "± 7j 30m via darat",
   },
-  'Kota Palangkaraya|Kota Banjarmasin': {
-    price: 'Rp 220.000',
-    duration: '± 4j 30m via darat',
+  "Kota Palangkaraya|Kota Banjarmasin": {
+    price: "Rp 220.000",
+    duration: "± 4j 30m via darat",
   },
-  'Kota Sampit|Kota Banjarmasin': {
-    price: 'Rp 325.000',
-    duration: '± 7j 45m via darat',
+  "Kota Sampit|Kota Banjarmasin": {
+    price: "Rp 325.000",
+    duration: "± 7j 45m via darat",
   },
-  'Kota Samarinda|Kota Balikpapan': {
-    price: 'Rp 150.000',
-    duration: '± 2j 15m via tol',
+  "Kota Samarinda|Kota Balikpapan": {
+    price: "Rp 150.000",
+    duration: "± 2j 15m via tol",
   },
-  'Kota Banjarmasin|Kota Balikpapan': {
-    price: 'Rp 325.000',
-    duration: '± 9j 00m lintas provinsi',
+  "Kota Banjarmasin|Kota Balikpapan": {
+    price: "Rp 325.000",
+    duration: "± 9j 00m lintas provinsi",
   },
-  'Kota Pontianak|Kota Singkawang': {
-    price: 'Rp 140.000',
-    duration: '± 3j 00m via darat',
+  "Kota Pontianak|Kota Singkawang": {
+    price: "Rp 140.000",
+    duration: "± 3j 00m via darat",
   },
 };
 
 function getDynamicRouteEstimate(fromCity: string, toCity: string) {
   if (fromCity === toCity) {
     return {
-      price: 'Rp 85.000',
-      duration: '± 45m antar-jemput dalam kota',
+      price: "Rp 85.000",
+      duration: "± 45m antar-jemput dalam kota",
     };
   }
 
@@ -222,27 +234,27 @@ function getDynamicRouteEstimate(fromCity: string, toCity: string) {
   if (ROUTE_ESTIMATES[keyReverse]) return ROUTE_ESTIMATES[keyReverse];
 
   const fromProvince = REGIONAL_CITIES.find((g) =>
-    g.cities.includes(fromCity)
+    g.cities.includes(fromCity),
   )?.province;
   const toProvince = REGIONAL_CITIES.find((g) =>
-    g.cities.includes(toCity)
+    g.cities.includes(toCity),
   )?.province;
 
   if (fromProvince && toProvince && fromProvince === toProvince) {
     return {
-      price: 'Rp 195.000',
-      duration: '± 4j 00m dalam provinsi',
+      price: "Rp 195.000",
+      duration: "± 4j 00m dalam provinsi",
     };
   }
 
   return {
-    price: 'Rp 325.000',
-    duration: '± 8j 30m lintas provinsi',
+    price: "Rp 325.000",
+    duration: "± 8j 30m lintas provinsi",
   };
 }
 
 function formatShortCity(city: string) {
-  return city.replace(/^Kota\s+/i, '');
+  return city.replace(/^Kota\s+/i, "");
 }
 
 function DestinationCard({
@@ -297,33 +309,33 @@ function DestinationCard({
 
 export default function HomePage() {
   const router = useRouter();
-  const [origin, setOrigin] = useState('');
-  const [destination, setDestination] = useState('');
-  const [date, setDate] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [origin, setOrigin] = useState("");
+  const [destination, setDestination] = useState("");
+  const [date, setDate] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [routeNotice, setRouteNotice] = useState<string | null>(null);
 
   // State Pop-up Detail Destinasi (Rute & Tanggal Pilihan Pengguna)
   const [selectedDestination, setSelectedDestination] =
     useState<TopDestinationItem | null>(null);
-  const [modalOrigin, setModalOrigin] = useState('Kota Sampit');
-  const [modalDate, setModalDate] = useState('2026-11-20');
+  const [modalOrigin, setModalOrigin] = useState("Kota Sampit");
+  const [modalDate, setModalDate] = useState("2026-11-20");
 
   // State Voice Assistant
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
-  const [voiceFeedback, setVoiceFeedback] = useState('');
+  const [voiceFeedback, setVoiceFeedback] = useState("");
 
   const handleOpenDestinationModal = (item: TopDestinationItem) => {
     setSelectedDestination(item);
     setModalOrigin(origin !== item.destination ? origin : item.defaultOrigin);
-    setModalDate(date || '2026-11-20');
+    setModalDate(date || "2026-11-20");
   };
 
   const handleSelectQuickRoute = (
     newOrigin: string,
     newDestination: string,
     shortLabel: string,
-    chosenDate?: string
+    chosenDate?: string,
   ) => {
     setOrigin(newOrigin);
     setDestination(newDestination);
@@ -331,17 +343,17 @@ export default function HomePage() {
       setDate(chosenDate);
     }
     setRouteNotice(`Rute ${shortLabel} siap dicari`);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
     setTimeout(() => setRouteNotice(null), 2800);
   };
 
   const handleDirectSearchDestination = (item: TopDestinationItem) => {
     if (modalOrigin === item.destination) {
-      alert('Pilih kota keberangkatan yang berbeda dari kota tujuan wisata.');
+      alert("Pilih kota keberangkatan yang berbeda dari kota tujuan wisata.");
       return;
     }
     if (!modalDate) {
-      alert('Silakan pilih tanggal keberangkatan terlebih dahulu.');
+      alert("Silakan pilih tanggal keberangkatan terlebih dahulu.");
       return;
     }
 
@@ -362,11 +374,13 @@ export default function HomePage() {
   const handleSearchTrip = (e: React.FormEvent) => {
     e.preventDefault();
     if (!origin || !destination || !date) {
-      alert('Lengkapi kota keberangkatan, tujuan, dan tanggal terlebih dahulu.');
+      alert(
+        "Lengkapi kota keberangkatan, tujuan, dan tanggal terlebih dahulu.",
+      );
       return;
     }
     if (origin === destination) {
-      alert('Kota keberangkatan dan tujuan tidak boleh sama.');
+      alert("Kota keberangkatan dan tujuan tidak boleh sama.");
       return;
     }
     const params = new URLSearchParams({
@@ -384,7 +398,7 @@ export default function HomePage() {
     setSearchQuery(cleaned);
 
     const matchedCity = CITIES.find((city) => {
-      const shortName = city.replace(/^Kota\s+/i, '').toLowerCase();
+      const shortName = city.replace(/^Kota\s+/i, "").toLowerCase();
       return (
         cleaned.toLowerCase().includes(city.toLowerCase()) ||
         cleaned.toLowerCase().includes(shortName)
@@ -411,12 +425,12 @@ export default function HomePage() {
     <AppShell showBottomNav={true}>
       <div className="flex-1 bg-[#F4F7F5] pb-28 relative">
         {/* Hero Header dengan Latar Hutan & Satwa Kalimantan */}
-        <div className="relative bg-gradient-to-b from-[#74B49B] via-[#8EC5AD] to-[#A7D7C5] pt-14 pb-11 px-5 overflow-hidden">
+        <div className="relative bg-gradient-to-b from-[#74B49B] via-[#8EC5AD] to-[#A7D7C5] pt-17 pb-15 px-7 overflow-hidden">
           <img
             src="/images/bg utama.png"
             alt=""
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
+              e.currentTarget.style.display = "none";
             }}
             className="absolute inset-0 w-full h-full object-cover object-top opacity-95"
           />
@@ -440,8 +454,8 @@ export default function HomePage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && searchQuery.trim()) {
-                      router.push('/explore');
+                    if (e.key === "Enter" && searchQuery.trim()) {
+                      router.push("/explore");
                     }
                   }}
                   placeholder="Find places, food, trips.."
@@ -450,7 +464,7 @@ export default function HomePage() {
                 {searchQuery && (
                   <button
                     type="button"
-                    onClick={() => setSearchQuery('')}
+                    onClick={() => setSearchQuery("")}
                     aria-label="Hapus teks pencarian"
                     className="text-gray-400 hover:text-gray-600"
                   >
@@ -461,7 +475,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => {
-                  setVoiceFeedback('');
+                  setVoiceFeedback("");
                   setIsVoiceOpen(true);
                 }}
                 aria-label="Pencarian Suara"
@@ -621,7 +635,7 @@ export default function HomePage() {
                 </p>
               </div>
               <button
-                onClick={() => router.push('/explore')}
+                onClick={() => router.push("/explore")}
                 className="text-[11px] font-bold text-[#15803D] hover:underline"
               >
                 Lihat Semua
@@ -652,22 +666,22 @@ export default function HomePage() {
             </div>
 
             <div
-              onClick={() => router.push('/promo')}
+              onClick={() => router.push("/promo")}
               className="relative w-full rounded-2xl overflow-hidden shadow-[0_6px_20px_rgba(0,0,0,0.08)] border border-emerald-950/5 cursor-pointer group bg-[#1B4332]"
             >
               <img
                 src="/images/Rectangle 40.png"
                 alt="Travel to Palangkaraya"
                 onError={(e) => {
-                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.style.display = "none";
                   const fallback = e.currentTarget
                     .nextElementSibling as HTMLElement;
-                  if (fallback) fallback.style.display = 'flex';
+                  if (fallback) fallback.style.display = "flex";
                 }}
                 className="w-full h-auto block group-hover:scale-[1.02] transition duration-300"
               />
               <div
-                style={{ display: 'none' }}
+                style={{ display: "none" }}
                 className="h-32 bg-gradient-to-r from-[#8EC5FC] via-[#A8E6CF] to-[#1B4332] flex-col justify-center px-5"
               >
                 <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-950">
@@ -703,7 +717,7 @@ export default function HomePage() {
                     handleSelectQuickRoute(
                       route.origin,
                       route.destination,
-                      `${route.labelFrom} → ${route.labelTo}`
+                      `${route.labelFrom} → ${route.labelTo}`,
                     )
                   }
                   className="shrink-0 bg-white rounded-2xl px-3.5 py-2.5 shadow-[0_3px_12px_rgba(0,0,0,0.05)] border border-emerald-950/5 hover:border-[#15803D]/40 active:scale-95 transition text-left"
@@ -748,7 +762,7 @@ export default function HomePage() {
                   src={selectedDestination.image}
                   alt={selectedDestination.title}
                   onError={(e) => {
-                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.style.display = "none";
                   }}
                   className="w-full h-full object-cover"
                 />
@@ -886,7 +900,7 @@ export default function HomePage() {
                     <div className="flex items-center justify-between text-xs pt-0.5">
                       <span className="text-gray-500">Rute Borneo Trans</span>
                       <span className="font-extrabold text-gray-800">
-                        {formatShortCity(modalOrigin)} &rarr;{' '}
+                        {formatShortCity(modalOrigin)} &rarr;{" "}
                         {formatShortCity(selectedDestination.destination)}
                       </span>
                     </div>
@@ -901,7 +915,7 @@ export default function HomePage() {
                       <p className="text-sm font-extrabold text-[#15803D]">
                         Mulai {modalEstimate.price}
                         <span className="text-[10px] font-medium text-gray-500">
-                          {' '}
+                          {" "}
                           / kursi
                         </span>
                       </p>
@@ -923,9 +937,9 @@ export default function HomePage() {
                       chosenOrigin,
                       item.destination,
                       `${formatShortCity(chosenOrigin)} → ${formatShortCity(
-                        item.destination
+                        item.destination,
                       )}`,
-                      chosenDate
+                      chosenDate,
                     );
                   }}
                   className="flex-1 py-2.5 px-3 rounded-xl border border-[#15803D] text-[#15803D] text-xs font-bold hover:bg-emerald-50 active:scale-[0.99] transition"
@@ -954,11 +968,11 @@ export default function HomePage() {
           promptText="Mendengarkan... Sebutkan kota tujuan"
           feedbackMessage={voiceFeedback}
           sampleCommands={[
-            'Ke Palangkaraya',
-            'Ke Samarinda',
-            'Ke Balikpapan',
-            'Ke Banjarmasin',
-            'Wisata Tanjung Puting',
+            "Ke Palangkaraya",
+            "Ke Samarinda",
+            "Ke Balikpapan",
+            "Ke Banjarmasin",
+            "Wisata Tanjung Puting",
           ]}
         />
       </div>

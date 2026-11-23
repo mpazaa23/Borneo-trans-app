@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MapPin, Calendar, Clock } from "lucide-react";
+import { MapPin, Calendar, Clock, Ban, AlertTriangle } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import {
   REGIONAL_CITIES,
@@ -10,18 +10,96 @@ import {
   getSchedulesForRoute,
 } from "@/data/mockData";
 
+// Sumber tunggal perhitungan sisa kursi berdasarkan rute, tanggal, dan shift ('pagi' | 'siang')
+function calculateShiftSeats(
+  originCity: string,
+  destCity: string,
+  travelDate: string,
+  shiftKey: "pagi" | "siang",
+  totalCapacity: number
+): number {
+  const cleanOrigin = originCity.replace(/^Kota\s+/i, "").toLowerCase().trim();
+  const cleanDest = destCity.replace(/^Kota\s+/i, "").toLowerCase().trim();
+  const seedKey = `${cleanOrigin}|${cleanDest}|${travelDate}|${shiftKey}`;
+
+  let hash = 0;
+  for (let i = 0; i < seedKey.length; i++) {
+    hash = (hash * 31 + seedKey.charCodeAt(i)) >>> 0;
+  }
+
+  const occupancyPattern = [6, 2, 0, 5, 1, 7, 3, 0, 4, 2];
+  const baseAvailable = occupancyPattern[hash % occupancyPattern.length];
+  const cappedAvailable = Math.min(baseAvailable, totalCapacity);
+
+  // Kurangi otomatis jika user sudah memesan tiket pada rute, tanggal, & shift yang sama
+  let userBookedCount = 0;
+  if (typeof window !== "undefined") {
+    try {
+      const storageKeys = ["borneo_bookings", "borneo_tickets"];
+      for (const key of storageKeys) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) continue;
+
+        for (const item of parsed) {
+          const itemOrigin = (
+            item.origin ||
+            item.originCity ||
+            item.origin_city ||
+            ""
+          ).toLowerCase();
+          const itemDest = (
+            item.destination ||
+            item.destinationCity ||
+            item.destination_city ||
+            ""
+          ).toLowerCase();
+          const itemDate = item.date || item.travel_date || "";
+          const itemTime = item.departureTime || item.departure_time || "";
+          const itemHour = parseInt(itemTime.split(":")[0] || "0", 10);
+          const itemShift = itemHour >= 12 ? "siang" : "pagi";
+
+          if (
+            itemOrigin.includes(cleanOrigin) &&
+            itemDest.includes(cleanDest) &&
+            itemDate === travelDate &&
+            (!itemTime || itemShift === shiftKey)
+          ) {
+            const seatList = item.selectedSeats || item.seats;
+            const seatsCount = Array.isArray(seatList)
+              ? seatList.length
+              : Number(item.passengers || item.seat_count || 1);
+            userBookedCount += seatsCount;
+          }
+        }
+        break;
+      }
+    } catch {
+      // Abaikan jika localStorage tidak tersedia
+    }
+  }
+
+  return Math.max(0, cappedAvailable - userBookedCount);
+}
+
 function SearchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const [origin, setOrigin] = useState(
-    searchParams.get("origin") || "Kota Sampit",
+    searchParams.get("origin") || "Kota Sampit"
   );
   const [destination, setDestination] = useState(
-    searchParams.get("destination") || "Kota Palangkaraya",
+    searchParams.get("destination") || "Kota Palangkaraya"
   );
-  const [date, setDate] = useState(searchParams.get("date") || "2026-04-20");
+  const [date, setDate] = useState(searchParams.get("date") || "2026-11-23");
   const [isEditing, setIsEditing] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const paramOrigin = searchParams.get("origin");
@@ -55,7 +133,7 @@ function SearchContent() {
         year: "numeric",
       });
     } catch {
-      return "20 April 2026";
+      return "23 November 2026";
     }
   };
 
@@ -64,9 +142,11 @@ function SearchContent() {
 
   const outboundRoute = findOrBuildRoute(origin, destination);
   const returnRoute = findOrBuildRoute(destination, origin);
-  const displayedRoutes = [
-    { ...outboundRoute, tripLabel: "Pagi", remainingSeats: 7 },
-    { ...returnRoute, tripLabel: "Siang", remainingSeats: 4 },
+  const displayedRoutes: Array<
+    typeof outboundRoute & { tripLabel: string; shiftKey: "pagi" | "siang" }
+  > = [
+    { ...outboundRoute, tripLabel: "Pagi", shiftKey: "pagi" },
+    { ...returnRoute, tripLabel: "Siang", shiftKey: "siang" },
   ];
 
   return (
@@ -212,23 +292,40 @@ function SearchContent() {
               {displayedRoutes.map((route, idx) => {
                 const schedules = getSchedulesForRoute(route.id, date);
                 const firstSchedule = schedules[0];
-                const sisaKursi = firstSchedule
-                  ? firstSchedule.total_seats -
-                    (firstSchedule.booked_seats?.length || 0)
-                  : route.remainingSeats;
+                const totalCapacity = firstSchedule?.total_seats || 8;
+
+                const sisaKursi = mounted
+                  ? calculateShiftSeats(
+                      route.origin_city,
+                      route.destination_city,
+                      date,
+                      route.shiftKey,
+                      totalCapacity
+                    )
+                  : 5;
+
+                const isFull = sisaKursi <= 0;
+                const isLowSeats = sisaKursi > 0 && sisaKursi <= 3;
 
                 return (
                   <div
                     key={`${route.id}-${idx}`}
                     onClick={() => {
+                      if (isFull) return;
                       const params = new URLSearchParams({
                         origin: route.origin_city,
                         destination: route.destination_city,
                         date,
+                        seats: String(sisaKursi),
+                        shift: route.shiftKey,
                       });
                       router.push(`/trip-detail?${params.toString()}`);
                     }}
-                    className="bg-white rounded-3xl overflow-hidden shadow-[0_10px_25px_rgba(0,0,0,0.12)] cursor-pointer hover:ring-2 hover:ring-[#15803D] transition active:scale-[0.99]"
+                    className={`bg-white rounded-3xl overflow-hidden shadow-[0_10px_25px_rgba(0,0,0,0.12)] transition ${
+                      isFull
+                        ? "opacity-85 cursor-not-allowed ring-1 ring-red-200"
+                        : "cursor-pointer hover:ring-2 hover:ring-[#15803D] active:scale-[0.99]"
+                    }`}
                   >
                     {/* Foto Armada Toyota Hiace */}
                     <div className="h-44 bg-gradient-to-b from-gray-50 to-white border-b border-gray-100 flex items-center justify-center p-2 relative overflow-hidden">
@@ -241,7 +338,9 @@ function SearchContent() {
                             .nextElementSibling as HTMLElement;
                           if (fallback) fallback.style.display = "flex";
                         }}
-                        className="w-full h-40 object-contain scale-110 drop-shadow-md"
+                        className={`w-full h-40 object-contain scale-110 drop-shadow-md transition ${
+                          isFull ? "grayscale opacity-60" : ""
+                        }`}
                       />
                       <div
                         style={{ display: "none" }}
@@ -256,6 +355,14 @@ function SearchContent() {
                           </p>
                         </div>
                       </div>
+
+                      {/* Overlay Badge Status Penuh */}
+                      {isFull && (
+                        <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-red-600 text-white text-[10px] font-extrabold tracking-wide uppercase shadow-md flex items-center gap-1">
+                          <Ban className="w-3 h-3" />
+                          <span>Kuota Penuh</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Detail Rute, Jam & Harga */}
@@ -269,15 +376,19 @@ function SearchContent() {
 
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span
-                            className={`px-2.5 py-0.5 rounded-md border border-gray-300 text-[10px] font-bold ${
-                              idx === 0 ? "text-[#15803D]" : "text-gray-500"
+                            className={`px-2.5 py-0.5 rounded-md border text-[10px] font-bold ${
+                              idx === 0
+                                ? "border-[#15803D] bg-emerald-50 text-[#15803D]"
+                                : "border-gray-300 text-gray-500"
                             }`}
                           >
                             Pagi
                           </span>
                           <span
-                            className={`px-2.5 py-0.5 rounded-md border border-gray-300 text-[10px] font-bold ${
-                              idx === 1 ? "text-[#15803D]" : "text-gray-500"
+                            className={`px-2.5 py-0.5 rounded-md border text-[10px] font-bold ${
+                              idx === 1
+                                ? "border-[#15803D] bg-emerald-50 text-[#15803D]"
+                                : "border-gray-300 text-gray-500"
                             }`}
                           >
                             Siang
@@ -288,7 +399,29 @@ function SearchContent() {
                       <div className="mt-2 space-y-1 text-[11px] text-gray-500">
                         <div className="flex items-center gap-1.5">
                           <Clock className="w-3.5 h-3.5 text-gray-400" />
-                          <span>01.00 &nbsp; 06.00 &nbsp; 13.00</span>
+                          <span className="flex items-center gap-2">
+                            <span
+                              className={
+                                idx === 0 ? "font-bold text-[#15803D]" : ""
+                              }
+                            >
+                              01.00
+                            </span>
+                            <span
+                              className={
+                                idx === 0 ? "font-bold text-[#15803D]" : ""
+                              }
+                            >
+                              06.00
+                            </span>
+                            <span
+                              className={
+                                idx === 1 ? "font-bold text-[#15803D]" : ""
+                              }
+                            >
+                              13.00
+                            </span>
+                          </span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5 text-gray-400" />
@@ -297,15 +430,32 @@ function SearchContent() {
                       </div>
 
                       <div className="flex items-end justify-between mt-3 pt-1">
-                        <span className="text-xs font-extrabold text-[#15803D]">
-                          Sisa {sisaKursi} Kursi
-                        </span>
+                        {/* Indikator Status Kursi Dinamis */}
+                        {isFull ? (
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 border border-red-200 text-red-600 text-[11px] font-extrabold">
+                            <Ban className="w-3.5 h-3.5 shrink-0" />
+                            <span>Kursi Penuh</span>
+                          </div>
+                        ) : isLowSeats ? (
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-extrabold">
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                            <span>Hampir Penuh &bull; Sisa {sisaKursi} Kursi</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs font-extrabold text-[#15803D]">
+                            Sisa {sisaKursi} Kursi
+                          </span>
+                        )}
 
                         <div className="text-right">
                           <p className="text-[10px] text-gray-400">
                             Mulai dari
                           </p>
-                          <p className="text-sm font-extrabold text-[#8B1E24]">
+                          <p
+                            className={`text-sm font-extrabold ${
+                              isFull ? "text-gray-400" : "text-[#8B1E24]"
+                            }`}
+                          >
                             Rp {route.base_price.toLocaleString("id-ID")}
                             <span className="text-xs font-semibold text-gray-500">
                               /Pax

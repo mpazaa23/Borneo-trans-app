@@ -1,6 +1,15 @@
 import type { Metadata, Viewport } from 'next';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import Script from 'next/script';
+import InstallAppButton from '@/components/InstallAppButton';
 import './globals.css';
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-jakarta',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Borneo Trans - Travel & Wisata Kalimantan',
@@ -21,8 +30,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" suppressHydrationWarning>
-      <body className="antialiased bg-slate-900 flex justify-center min-h-screen">
+    <html lang="id" className={plusJakartaSans.variable} suppressHydrationWarning>
+      <body
+        className={`${plusJakartaSans.className} antialiased bg-slate-900 flex justify-center min-h-screen`}
+      >
         <Script id="borneo-theme-init" strategy="beforeInteractive">
           {`
             try {
@@ -35,6 +46,7 @@ export default function RootLayout({
           `}
         </Script>
         <main className="w-full max-w-[430px] min-h-screen bg-[#E8F3EC] relative overflow-x-hidden shadow-2xl flex flex-col">
+          <InstallAppButton />
           {children}
         </main>
       </body>
